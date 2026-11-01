@@ -1,0 +1,16 @@
+services:
+  redis:
+    image: redis:7-alpine
+  api:
+    build: ./api
+    environment:
+      REDIS_HOST: redis
+      LOCAL_DIR: /data
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    volumes:
+      - docs:/data
+    ports: ["5000:5000"]
+    depends_on: [redis]
+
+volumes:
+  docs:
