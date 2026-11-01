@@ -1,0 +1,27 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renewguard-reminders
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: reminders
+              image: IMAGE_PLACEHOLDER
+              command: ["python", "remind.py"]
+              envFrom:
+                - secretRef: {name: renewguard-secrets}
+              env:
+                - {name: REDIS_HOST, value: redis}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 192Mi}

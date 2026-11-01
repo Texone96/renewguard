@@ -1,0 +1,59 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: renewguard-notifier
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: renewguard-notifier
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: renewguard-notifier
+subjects:
+  - kind: ServiceAccount
+    name: renewguard-notifier
+roleRef:
+  kind: Role
+  name: renewguard-notifier
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: renewguard-notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: renewguard-notifier}
+  template:
+    metadata:
+      labels: {app: renewguard-notifier}
+    spec:
+      serviceAccountName: renewguard-notifier
+      containers:
+        - name: notifier
+          image: IMAGE_PLACEHOLDER
+          command: ["python", "scale_notifier.py"]
+          envFrom:
+            - secretRef: {name: renewguard-secrets}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef: {fieldPath: metadata.namespace}
+          resources:
+            requests: {cpu: 20m, memory: 96Mi}
+            limits: {memory: 192Mi}
